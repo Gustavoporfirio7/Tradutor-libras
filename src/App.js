@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-// Importações dos seus componentes
-import LandingPage from './LandingPage';
-import TranslatorPage from './TranslatorPage';
-import NotFoundPage from './NotFoundPage';
+import LandingPage from './pages/LandingPage';
+import TranslatorPage from './pages/TranslatorPage';
+import NotFoundPage from './pages/NotFoundPage';
 
-function App() {
+export default function App() {
   const [currentPage, setCurrentPage] = useState('/');
 
   const navigateTo = (path) => {
     setCurrentPage(path);
+    window.scrollTo(0, 0);
   };
 
   const renderPage = () => {
@@ -23,10 +23,8 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f4f8] text-[#1f2937] font-inter antialiased">
+    <div className="min-h-screen bg-[#f0f4f8] text-[#1f2937] font-sans antialiased">
       {renderPage()}
     </div>
   );
 }
-
-export default App;
