@@ -1,39 +1,30 @@
-export const SIGN_DICTIONARY = [
-  "Mão Aberta",
-  "Mão Fechada (Punho)",
-  "Fixe / Positivo",
-  "Vitória / Paz"
-];
+export const SIGN_DICTIONARY = ['Mão aberta', 'Mão fechada (punho)', 'Positivo', 'Vitória / Paz'];
 
-/**
- * Classifica a posição básica dos dedos com base nos pontos de referência (landmarks) do MediaPipe.
- * Cada dedo tem pontos de 0 a 20:
- * Polegar: 4 | Indicador: 8 | Médio: 12 | Anelar: 16 | Mindinho: 20
- */
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
+const jointAngle = (a, b, c) => {
+  const ab = [a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0)];
+  const cb = [c.x - b.x, c.y - b.y, (c.z || 0) - (b.z || 0)];
+  const length = Math.hypot(...ab) * Math.hypot(...cb);
+  if (!length) return 0;
+  const cosine = ab.reduce((sum, value, i) => sum + value * cb[i], 0) / length;
+  return Math.acos(Math.max(-1, Math.min(1, cosine))) * 180 / Math.PI;
+};
+
+// Usa a geometria da mão, em vez de comparar a altura dos dedos na tela.
 export function classifyHandGesture(landmarks) {
-  if (!landmarks || landmarks.length < 21) return null;
-
-  const isIndexUp = landmarks[8].y < landmarks[6].y;
-  const isMiddleUp = landmarks[12].y < landmarks[10].y;
-  const isRingUp = landmarks[16].y < landmarks[14].y;
-  const isPinkyUp = landmarks[20].y < landmarks[18].y;
-  const isThumbUp = landmarks[4].y < landmarks[3].y;
-
-  if (isIndexUp && isMiddleUp && isRingUp && isPinkyUp) {
-    return "Mão Aberta";
-  }
-
-  if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp && isThumbUp) {
-    return "Fixe / Positivo";
-  }
-
-  if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
-    return "Vitória / Paz";
-  }
-
-  if (!isIndexUp && !isMiddleUp && !isRingUp && !isPinkyUp) {
-    return "Mão Fechada (Punho)";
-  }
-
+  if (!Array.isArray(landmarks) || landmarks.length < 21 ||
+      !landmarks.every(point => point && Number.isFinite(point.x) && Number.isFinite(point.y) &&
+        (point.z === undefined || Number.isFinite(point.z)))) return null;
+  const wrist = landmarks[0];
+  const palmSize = distance(wrist, landmarks[9]);
+  if (palmSize < 0.0001) return null;
+  const extended = (base, joint, tip) => jointAngle(landmarks[base], landmarks[joint], landmarks[tip]) > 155 &&
+    distance(wrist, landmarks[tip]) > distance(wrist, landmarks[joint]) * 1.15;
+  const fingers = [[5, 6, 8], [9, 10, 12], [13, 14, 16], [17, 18, 20]].map(points => extended(...points));
+  const thumbExtended = jointAngle(landmarks[2], landmarks[3], landmarks[4]) > 155 &&
+    distance(landmarks[4], landmarks[5]) > palmSize * 0.65;
+  if (fingers.every(Boolean)) return SIGN_DICTIONARY[0];
+  if (fingers.every(value => !value)) return thumbExtended ? SIGN_DICTIONARY[2] : SIGN_DICTIONARY[1];
+  if (fingers[0] && fingers[1] && !fingers[2] && !fingers[3]) return SIGN_DICTIONARY[3];
   return null;
 }

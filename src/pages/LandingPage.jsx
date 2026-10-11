@@ -39,6 +39,13 @@ const FeatureCard = ({ icon, title, description, color }) => {
     pink: 'from-pink-500 to-pink-600'
   };
 
+  const iconColors = {
+    blue: 'bg-blue-100 text-blue-600',
+    purple: 'bg-purple-100 text-purple-600',
+    indigo: 'bg-indigo-100 text-indigo-600',
+    pink: 'bg-pink-100 text-pink-600'
+  };
+
   return (
     <motion.div
       ref={ref}
@@ -49,8 +56,8 @@ const FeatureCard = ({ icon, title, description, color }) => {
       className={`bg-gradient-to-br ${bgColors[color]} p-0.5 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300`}
     >
       <div className="bg-white rounded-xl p-8 h-full">
-        <div className={`w-16 h-16 bg-${color}-100 rounded-xl flex items-center justify-center mb-6`}>
-          {React.cloneElement(icon, { className: `text-${color}-600 text-3xl` })} {/* Clona o ícone para aplicar cor e tamanho dinamicamente */}
+        <div className={`w-16 h-16 ${iconColors[color]} rounded-xl flex items-center justify-center mb-6`}>
+          {React.cloneElement(icon, { className: 'text-3xl' })} {/* Clona o ícone para aplicar cor e tamanho dinamicamente */}
         </div>
         <h3 className="text-2xl font-bold text-gray-900 mb-3">{title}</h3>
         <p className="text-gray-600 leading-relaxed">{description}</p>
@@ -209,16 +216,16 @@ function LandingPage({ navigateTo }) {
         >
           <motion.div variants={itemVariants} className="mb-8">
             <span className="inline-block px-4 py-2 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold shadow-sm">
-              NOVA VERSÃO DISPONÍVEL
+              PROTÓTIPO EM DESENVOLVIMENTO
             </span>
           </motion.div>
           
           <motion.h1 variants={itemVariants} className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-tight mb-8">
-            Revolucionando a <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">comunicação</span> em Libras
+            Explorando a <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">comunicação</span> por gestos
           </motion.h1>
           
           <motion.p variants={itemVariants} className="text-xl sm:text-2xl text-gray-600 mb-12 leading-relaxed max-w-3xl mx-auto">
-            A plataforma mais avançada para tradução de Língua Brasileira de Sinais, combinando inteligência artificial com tecnologia acessível.
+            Duas formas de experimentar: texto ou voz em português para sinais com o VLibras, e câmera para reconhecer gestos e testar palavras cadastradas.
           </motion.p>
           
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row justify-center gap-4">
@@ -231,7 +238,7 @@ function LandingPage({ navigateTo }) {
               onClick={() => navigateTo('/tradutor')}
               className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              Comece Agora - É Grátis
+              Abrir tradutor
             </motion.button>
             <motion.button
               whileHover={{ 
@@ -239,14 +246,20 @@ function LandingPage({ navigateTo }) {
                 boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" 
               }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => document.getElementById('demonstracao')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-8 py-4 bg-white text-gray-700 font-bold rounded-xl text-lg border-2 border-gray-200 hover:border-blue-400 transition-all duration-300"
             >
-              Demonstração
+              Ver gestos disponíveis
             </motion.button>
           </motion.div>
         </motion.div>
       </section>
 
+      <section id="demonstracao" className="scroll-mt-24 px-6 py-12 bg-blue-50 text-center">
+        <h2 className="text-2xl font-bold mb-4">Gestos disponíveis no protótipo</h2>
+        <p className="text-gray-700 mb-4">Mão aberta · Mão fechada (punho) · Positivo · Vitória / Paz</p>
+        <p className="text-gray-600">Use uma mão por vez e mantenha o gesto estável por um instante. O reconhecimento da câmera ainda é experimental. Para português em sinais, use a opção Texto ou voz → Libras.</p>
+      </section>
       {/* Seção de Diferenciais (Por que escolher?) */}
       <section className="py-20 px-4 sm:px-8 lg:px-16 bg-white">
         <div className="container mx-auto">
@@ -261,27 +274,27 @@ function LandingPage({ navigateTo }) {
               Por que escolher o SignaWeb?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Tecnologia de ponta projetada para tornar a comunicação acessível a todos.
+              Conheça os recursos disponíveis nesta etapa do projeto.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <FeatureCard
               icon={<FiAward />} // Ícone de prêmio
-              title="Precisão Avançada"
-              description="Taxa de acerto superior a 95% nos sinais mais comuns com nosso algoritmo exclusivo."
+              title="Gestos Básicos"
+              description="Teste quatro gestos básicos e cadastre exemplos de sinais estáticos de uma mão para reconhecer palavras."
               color="blue"
             />
             <FeatureCard
               icon={<FiClock />} // Ícone de relógio
               title="Tempo Real"
-              description="Tradução instantânea com delay inferior a 0.3 segundos para conversas fluidas."
+              description="Acompanha a mão pela webcam e aguarda o gesto ficar estável antes de mostrar o resultado."
               color="purple"
             />
             <FeatureCard
               icon={<FiUser />} // Ícone de usuário
               title="Acessível"
-              description="Funciona em qualquer dispositivo sem necessidade de hardware especializado."
+              description="Use um navegador compatível com acesso à webcam. Os resultados podem variar conforme o dispositivo."
               color="indigo"
             />
           </div>
@@ -305,33 +318,33 @@ function LandingPage({ navigateTo }) {
               Como transformamos gestos em voz
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Nosso sistema avançado combina visão computacional com deep learning para resultados precisos.
+              A câmera acompanha a mão para testar palavras cadastradas. Na outra direção, texto digitado ou ditado pode ser exibido em sinais pelo avatar do VLibras.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <FeatureCard
               icon={<FiCamera />} // Ícone de câmera
-              title="Captura Inteligente"
-              description="Sistema adaptativo que funciona em diversas condições de iluminação e ângulos."
+              title="Captura pela Câmera"
+              description="Para melhores resultados, mantenha a mão visível e use um ambiente bem iluminado."
               color="blue"
             />
             <FeatureCard
               icon={<FaHandPaper />} // CORRIGIDO: Ícone de mão
               title="Reconhecimento 3D"
-              description="Detecção tridimensional dos gestos para maior precisão na interpretação."
+              description="O detector estima pontos das mãos; o protótipo reconhece um gesto de uma mão por vez."
               color="purple"
             />
             <FeatureCard
               icon={<FiType />} // Ícone de texto
-              title="Processamento Neural"
-              description="Redes neurais profundas treinadas especificamente para Libras brasileira."
+              title="Reconhecimento de Gestos"
+              description="O reconhecimento experimental compara a mão com exemplos cadastrados. Ainda não há um modelo geral de Libras."
               color="indigo"
             />
             <FeatureCard
               icon={<FiVolume2 />} // Ícone de volume
-              title="Voz Natural"
-              description="Síntese de voz com entonação natural e ritmo conversacional."
+              title="Leitura em Voz"
+              description="Leitura em português do Brasil usando as vozes disponíveis no navegador."
               color="pink"
             />
           </div>
@@ -339,57 +352,13 @@ function LandingPage({ navigateTo }) {
       </section>
 
       {/* Rodapé Aprimorado */}
-      <footer className="bg-gray-900 text-white pt-20 pb-10 px-4 sm:px-8 lg:px-16">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                  <FaHandPaper className="text-white text-xl" /> {/* CORRIGIDO: Ícone da mão */}
-                </div>
-                <h3 className="text-2xl font-bold text-white">SignaWeb</h3>
-              </div>
-              <p className="text-gray-400 mb-6">
-                Tornando a comunicação acessível através de tecnologia inovadora.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-6">Produto</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Recursos</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Planos</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">API</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Status</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-6">Suporte</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Documentação</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Tutoriais</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contato</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-6">Legal</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Privacidade</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Termos</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Cookies</a></li>
-              </ul>
-            </div>
+      <footer className="bg-gray-900 text-white py-12 px-6">
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between gap-6">
+          <div>
+            <h3 className="text-2xl font-bold mb-3">SignaWeb</h3>
+            <p className="text-gray-400">Projeto em desenvolvimento para apoiar a comunicação em Libras.</p>
           </div>
-          
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              &copy; {new Date().getFullYear()} SignaWeb. Todos os direitos reservados.
-            </p>
-            {/* Adicione links de redes sociais aqui se desejar */}
-          </div>
+          <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} SignaWeb. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
