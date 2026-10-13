@@ -4,6 +4,9 @@ import { Hands, HAND_CONNECTIONS } from '@mediapipe/hands';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { classifyHandGesture, SIGN_DICTIONARY } from '../utils/utilities';
 import MotionTrainer from './MotionTrainer';
+import AlphabetPanel from './AlphabetPanel';
+import { classifyAlphabet, isLetter } from '../utils/alphabet';
+import { loadMotions, motionFrame, normalizeMotion, recognizeMotion } from '../utils/motionVocabulary';
 import { handFeatures, loadVocabulary, saveVocabulary, addExample, recognizeWord } from '../utils/vocabulary';
 
 export default function CameraTranslator() {
@@ -24,6 +27,8 @@ export default function CameraTranslator() {
   const latestHandRef = useRef(null);
   const [wordToTeach, setWordToTeach] = useState('');
   const [trainingStatus, setTrainingStatus] = useState('');
+  const [recognitionMode, setRecognitionMode] = useState('signs');
+  const recognitionModeRef = useRef('signs');
 
   const updateVocabulary = next => {
     try {
@@ -38,16 +43,16 @@ export default function CameraTranslator() {
     }
   };
 
-  const captureExample = () => {
+  const captureExample = (label = wordToTeach) => {
     const latest = latestHandRef.current;
     if (!latest || Date.now() - latest.time > 1000) {
       setTrainingStatus('Ative a câmera e mantenha uma mão visível antes de salvar.');
       return;
     }
     try {
-      const next = addExample(vocabularyRef.current, wordToTeach, latest.features);
+      const next = addExample(vocabularyRef.current, label, latest.features);
       if (updateVocabulary(next)) {
-        const saved = next.find(item => item.word.toLocaleLowerCase('pt-BR') === wordToTeach.trim().replace(/\s+/g, ' ').slice(0, 40).toLocaleLowerCase('pt-BR'));
+        const saved = next.find(item => item.word.toLocaleLowerCase('pt-BR') === label.trim().replace(/\s+/g, ' ').slice(0, 40).toLocaleLowerCase('pt-BR'));
         setTrainingStatus(`Exemplo salvo para “${saved.word}”. ${saved.examples.length}/3 exemplos mínimos. Varie um pouco a posição para o próximo exemplo.`);
       }
     } catch (cause) { setTrainingStatus(cause.message); }
@@ -65,8 +70,8 @@ export default function CameraTranslator() {
 
   const showWord = word => {
     setTranslatedText(word);
-    setHistory(previous => [word, ...previous.filter(item => item !== word)].slice(0, 5));
-    setConversation(previous => [previous, word].filter(Boolean).join(' ').slice(-1000));
+    setHistory(previous => [word, ...previous].slice(0, 30));
+    setConversation(previous => (isLetter(word) ? previous + word : [previous, word].filter(Boolean).join(' ')).slice(-1000));
     speakText(word);
   };
 
@@ -145,9 +150,13 @@ export default function CameraTranslator() {
       });
       session.hands = hands;
       hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+      session.motionFrames = [];
+      session.motions = loadMotions();
+      session.motionCheckedAt = 0;
       hands.onResults(results => {
         if (sessionRef.current !== session) return;
         session.latestResults = { results, time: Date.now() };
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -165,13 +174,31 @@ export default function CameraTranslator() {
         // Este protótipo reconhece somente gestos isolados de uma mão.
         const features = detectedHands.length === 1 ? handFeatures(detectedHands[0]) : null;
         latestHandRef.current = features ? { features, time: Date.now() } : null;
-        if (session.recording) return;
-        const word = recognizeWord(features, vocabularyRef.current);
-        const gesture = word || (detectedHands.length === 1 ? gestures[0] : null);
+        if (session.recording) { session.motionFrames=[]; return; }
+        const now = Date.now();
+        const alphabetMode = recognitionModeRef.current === 'alphabet';
+        const trained = alphabetMode ? vocabularyRef.current.filter(item=>isLetter(item.word)) : vocabularyRef.current;
+        const word = recognizeWord(features, trained);
+        if (!session.motionFrames.length || now - session.motionFrames[session.motionFrames.length-1].time >= 90) {
+          session.motionFrames.push(motionFrame(results, now));
+          session.motionFrames = session.motionFrames.filter(frame=>now-frame.time<=3000).slice(-40);
+        }
+        if (alphabetMode && now-session.motionCheckedAt>=500) {
+          session.motionCheckedAt = now;
+          session.motions = loadMotions();
+          const sequence = normalizeMotion(session.motionFrames);
+          const motionLetter = recognizeMotion(sequence, session.motions.filter(item=>isLetter(item.word)));
+          if (motionLetter && session.last !== motionLetter) {
+            session.last = motionLetter;
+            session.motionFrames = [];
+            showWord(motionLetter);
+            return;
+          }
+        }
+        const gesture = word || (detectedHands.length === 1 ? (alphabetMode ? classifyAlphabet(detectedHands[0]) : gestures[0]) : null);
         setStatus(detectedHands.length > 1 ? 'Use uma mão por vez para reconhecer o gesto' :
           detectedHands.length === 0 ? 'Posicione uma mão na câmera' :
           gesture ? 'Mantenha o gesto por um instante' : 'Gesto fora do vocabulário do protótipo');
-        const now = Date.now();
         if (!gesture) {
           session.candidate = null;
           if (session.emptySince === null) session.emptySince = now;
@@ -186,8 +213,8 @@ export default function CameraTranslator() {
         if (now - session.since < 600 || session.last === gesture) return;
         session.last = gesture;
         setTranslatedText(gesture);
-        setHistory(previous => [gesture, ...previous.filter(item => item !== gesture)].slice(0, 5));
-        if (!SIGN_DICTIONARY.includes(gesture)) setConversation(previous => [previous, gesture].filter(Boolean).join(' ').slice(-1000));
+        setHistory(previous => [gesture, ...previous].slice(0, 30));
+        if (!SIGN_DICTIONARY.includes(gesture)) setConversation(previous => (isLetter(gesture) ? previous + gesture : [previous, gesture].filter(Boolean).join(' ')).slice(-1000));
         speakText(gesture);
       });
       const processFrame = async () => {
@@ -213,6 +240,11 @@ export default function CameraTranslator() {
       </div>
 
       <div className="px-4 sm:px-8 pt-4 flex flex-wrap gap-3 items-center">
+        <label htmlFor="recognition-mode" className="font-bold">Reconhecer</label>
+        <select id="recognition-mode" value={recognitionMode} onChange={event=>{
+          const next = event.target.value; setRecognitionMode(next); recognitionModeRef.current=next;
+          if (sessionRef.current) { sessionRef.current.last=null; sessionRef.current.candidate=null; sessionRef.current.motionFrames=[]; }
+        }} className="border rounded-xl bg-white p-3"><option value="signs">Sinais e palavras</option><option value="alphabet">Alfabeto manual</option></select>
         <label htmlFor="camera-facing" className="font-bold">Câmera</label>
         <select id="camera-facing" value={facingMode} onChange={event => {
           const next = event.target.value;
@@ -233,7 +265,8 @@ export default function CameraTranslator() {
         {cameraNotice && <p role="status" className="text-amber-700">{cameraNotice}</p>}
       </div>
       <main className="flex-1 flex flex-col lg:flex-row p-4 sm:p-6 gap-6">
-        <div className="flex-1 min-h-[320px] lg:min-h-[480px] lg:max-h-[640px] bg-black rounded-[2.5rem] overflow-hidden relative border-8 border-white shadow-2xl flex items-center justify-center">
+        <div className="flex-1 min-w-0 flex flex-col gap-5">
+        <div className="min-h-[320px] lg:min-h-[480px] lg:max-h-[640px] bg-black rounded-[2.5rem] overflow-hidden relative border-8 border-white shadow-2xl flex items-center justify-center">
           <video ref={videoRef} playsInline className={`w-full h-full object-cover transform ${actualFacingMode === 'user' ? '-scale-x-100' : ''} ${!isCapturing ? 'hidden' : 'block'}`} />
           <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full object-cover transform ${actualFacingMode === 'user' ? '-scale-x-100' : ''} pointer-events-none ${!isCapturing ? 'hidden' : 'block'}`} />
 
@@ -254,8 +287,29 @@ export default function CameraTranslator() {
           )}
         </div>
 
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 max-h-[420px] overflow-hidden flex flex-col">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+              <History className="w-4 h-4" /> Histórico
+            </h4>
+            <div className="space-y-3 overflow-y-auto pr-2">
+              {history.length > 0 ? (
+                history.map((h, i) => (
+                  <div key={i} className="p-4 bg-gray-50 rounded-2xl font-bold flex justify-between items-center hover:border-blue-100 border border-transparent">
+                    <span className="text-[#1f2937]">{h}</span>
+                    <button type="button" aria-label={`Ouvir ${h}`} onClick={() => speakText(h)} className="text-gray-400 hover:text-blue-500"><Volume2 className="w-4 h-4" /></button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-300 text-sm text-center py-10 italic">Aguardando gestos...</p>
+              )}
+            </div>
+          </div>
+
+
+        </div>
         <div className="w-full lg:w-[400px] flex flex-col gap-6">
           <p className="text-sm text-gray-600">Gestos básicos: mão aberta, punho fechado, positivo e vitória/paz. Palavras precisam de pelo menos três exemplos cadastrados. Mantenha a mão estável; para repetir, retire-a por um instante.</p>
+          {recognitionMode === 'alphabet' && <AlphabetPanel vocabulary={vocabulary} isCapturing={isCapturing} onCapture={captureExample} />}
           <MotionTrainer key={facingMode} cameraSessionRef={sessionRef} isCapturing={isCapturing} onRecognized={showWord} />
           <details className="bg-white rounded-2xl p-5 border border-gray-200">
             <summary className="font-bold cursor-pointer text-blue-700">Ensinar uma palavra (experimental)</summary>
@@ -263,7 +317,7 @@ export default function CameraTranslator() {
               <p className="text-sm text-gray-600">Cadastre apenas sinais estáticos de uma mão que você conheça. Este recurso compara a postura com seus exemplos; não valida se o sinal pertence à Libras. Evite palavras com posturas parecidas.</p>
               <label htmlFor="teach-word" className="block text-sm font-bold">Palavra do sinal</label>
               <input id="teach-word" maxLength={40} value={wordToTeach} onChange={event => setWordToTeach(event.target.value)} className="w-full border rounded-xl p-3" placeholder="Digite a palavra" />
-              <button type="button" disabled={!isCapturing || !wordToTeach.trim()} onClick={captureExample} className="w-full rounded-xl bg-blue-600 text-white px-4 py-3 font-bold disabled:opacity-50">Salvar exemplo da mão</button>
+              <button type="button" disabled={!isCapturing || !wordToTeach.trim()} onClick={() => captureExample()} className="w-full rounded-xl bg-blue-600 text-white px-4 py-3 font-bold disabled:opacity-50">Salvar exemplo da mão</button>
               <p role="status" className="text-sm text-gray-600">{trainingStatus || 'Faça o sinal e salve três exemplos com pequenas variações. Os exemplos ficam somente neste navegador.'}</p>
               <ul className="space-y-2">
                 {vocabulary.map(item => <li key={item.word} className="flex items-center justify-between gap-2 text-sm border-t pt-2">
@@ -295,24 +349,6 @@ export default function CameraTranslator() {
               <button type="button" onClick={() => setConversation('')} className="text-gray-600">Limpar conversa</button>
             </div>
           </div>
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col">
-            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-              <History className="w-4 h-4" /> Histórico
-            </h4>
-            <div className="space-y-3 overflow-y-auto pr-2">
-              {history.length > 0 ? (
-                history.map((h, i) => (
-                  <div key={i} className="p-4 bg-gray-50 rounded-2xl font-bold flex justify-between items-center hover:border-blue-100 border border-transparent">
-                    <span className="text-[#1f2937]">{h}</span>
-                    <button type="button" aria-label={`Ouvir ${h}`} onClick={() => speakText(h)} className="text-gray-400 hover:text-blue-500"><Volume2 className="w-4 h-4" /></button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-300 text-sm text-center py-10 italic">Aguardando gestos...</p>
-              )}
-            </div>
-          </div>
-
           {isCapturing && (
             <button onClick={stopDetection} className="bg-red-50 text-red-600 py-3 rounded-2xl font-bold flex items-center justify-center gap-2">
               <AlertCircle className="w-4 h-4" /> Parar Câmera

@@ -10,7 +10,7 @@ export default function TranslatorPage({ navigateTo }) {
     <div className="min-h-screen bg-[#f0f4f8]">
       <header className="bg-white border-b p-4 sm:px-8 flex items-center justify-between gap-4">
         <button type="button" onClick={() => navigateTo('/')} className="flex items-center gap-2 font-bold text-gray-600 hover:text-blue-600"><ArrowLeft className="w-5 h-5" />Voltar</button>
-        <h2 className="text-xl font-bold">Tradutor <span className="text-blue-600">SignaWeb</span></h2>
+        <h2 className="text-xl font-bold">Tradutor <span className="text-blue-600">Éfata</span></h2>
       </header>
       <div role="group" aria-label="Direção da tradução" className="max-w-4xl mx-auto p-4 flex flex-col sm:flex-row gap-3">
         <button type="button" aria-pressed={mode === 'text'} onClick={() => setMode('text')}

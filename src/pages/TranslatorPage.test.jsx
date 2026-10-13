@@ -147,3 +147,32 @@ test('cadastra três exemplos e exibe a palavra associada à mão', async () => 
   fireEvent.click(screen.getByRole('button', { name: 'Remover Exemplo' }));
   expect(JSON.parse(localStorage.getItem('signaweb-vocabulary-v1'))).toEqual([]);
 });
+
+test('lê letras calibradas, mantém repetições no histórico abaixo da câmera e forma o texto', async () => {
+  let onResults;
+  Hands.mockImplementation(() => ({setOptions:jest.fn(),onResults:callback=>{onResults=callback;},close:jest.fn().mockResolvedValue()}));
+  jest.spyOn(window,'requestAnimationFrame').mockReturnValue(1);
+  jest.spyOn(window,'cancelAnimationFrame').mockImplementation(()=>{});
+  jest.spyOn(HTMLMediaElement.prototype,'play').mockResolvedValue();
+  const now=jest.spyOn(Date,'now').mockReturnValue(0);
+  Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:jest.fn().mockResolvedValue({getTracks:()=>[{stop:jest.fn()}]})}});
+  const points=Array.from({length:21},(_,i)=>({x:0.1+i*0.01,y:0.2+i*0.02,z:0}));
+  const {handFeatures}=require('../utils/vocabulary');
+  const example=handFeatures(points);
+  localStorage.setItem('signaweb-vocabulary-v1',JSON.stringify([{word:'A',examples:[example,example,example]}]));
+  const {container}=render(<TranslatorPage navigateTo={jest.fn()} />);
+  fireEvent.change(screen.getByLabelText('Reconhecer'),{target:{value:'alphabet'}});
+  fireEvent.click(screen.getByRole('button',{name:'Ativar Câmera'}));
+  await waitFor(()=>expect(onResults).toBeDefined());
+  const frame=(time,visible=true)=>{
+    now.mockReturnValue(time);
+    act(()=>onResults({multiHandLandmarks:visible?[points]:[]}));
+  };
+  frame(0);frame(601);frame(1000,false);frame(1601,false);frame(1700);frame(2301);
+  expect(screen.getByLabelText('Sua conversa')).toHaveValue('AA');
+  expect(screen.getAllByRole('button',{name:'Ouvir A'})).toHaveLength(2);
+  const historyHeading=screen.getByRole('heading',{name:'Histórico'});
+  const camera=container.querySelector('video');
+  expect(camera.compareDocumentPosition(historyHeading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole('button',{name:'Salvar postura da letra A'})).toBeInTheDocument();
+});

@@ -2,29 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-/* O restante do seu CSS pode vir abaixo */
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
+:root { color-scheme: light; --page:#f6f8fc; --surface:#ffffff; --soft:#eef4ff; --text:#17243b; --muted:#55657e; --border:#dce5f1; --accent:#2563eb; --accent-text:#1d4ed8; }
+:root[data-theme="dark"] { color-scheme:dark; --page:#0b1220; --surface:#141f32; --soft:#1c2d48; --text:#edf3ff; --muted:#b2c0d6; --border:#31425d; --accent:#2563eb; --accent-text:#91b9ff; }
+body { margin:0; background:var(--page); color:var(--text); font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased; }
+button,input,select,textarea { font:inherit; }
+button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid var(--accent-text); outline-offset:4px; }
+input,select,textarea { color:var(--text); background:var(--surface); }
+.efata-nav { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px max(20px,calc((100vw - 1200px)/2)); background:var(--surface); border-bottom:1px solid var(--border); }
+.efata-brand { display:flex; align-items:center; gap:10px; font-size:28px; font-weight:800; color:var(--accent-text); }
+.efata-theme-toggle,.efata-secondary { display:inline-flex; align-items:center; justify-content:center; gap:9px; padding:12px 18px; border:1px solid var(--border); border-radius:14px; color:var(--text); background:var(--surface); font-weight:600; }
+.efata-hero { max-width:1200px; margin:auto; padding:76px 24px 60px; }
+.efata-tag { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:var(--soft); color:var(--accent-text); font-size:12px; font-weight:700; letter-spacing:.05em; }
+.efata-hero h1 { margin:24px 0; max-width:900px; font-size:clamp(38px,6vw,76px); line-height:1.12; font-weight:800; letter-spacing:-.04em; }
+.efata-hero h1 span { color:var(--accent-text); }
+.efata-hero > p { max-width:700px; font-size:20px; line-height:1.7; color:var(--muted); }
+.efata-actions { display:flex; flex-wrap:wrap; gap:14px; margin:30px 0 60px; }
+.efata-primary { display:inline-flex; align-items:center; justify-content:center; gap:12px; padding:15px 24px; border-radius:14px; background:var(--accent); color:white; font-weight:700; }
+.efata-feature-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+.efata-feature-grid article { padding:28px; border:1px solid var(--border); border-radius:24px; background:var(--surface); }
+.efata-feature-grid svg { color:var(--accent-text); width:30px; height:30px; }
+.efata-feature-grid h2 { margin:20px 0 12px; font-size:21px; font-weight:700; }
+.efata-feature-grid p,.efata-note p { color:var(--muted); line-height:1.7; }
+.efata-story { max-width:1152px; margin:0 auto 60px; padding:42px; display:grid; grid-template-columns:1fr 1.5fr; gap:40px; background:var(--surface); border:1px solid var(--border); border-radius:30px; }
+.efata-story h2 { font-weight:800; font-size:36px; line-height:1.2; margin-top:20px; }
+.efata-story-copy p { line-height:1.8; color:var(--muted); margin-bottom:18px; }
+.efata-story a { display:inline-flex; align-items:center; gap:9px; color:var(--accent-text); font-weight:600; text-decoration:underline; }
+.efata-note { max-width:1000px; padding:0 24px 60px; margin:auto; }
+.efata-note h2 { font-size:25px; font-weight:700; margin-bottom:14px; }
+.efata-footer { padding:30px 24px; display:flex; flex-wrap:wrap; gap:20px; justify-content:space-between; border-top:1px solid var(--border); color:var(--muted); }
+.efata-footer strong { color:var(--text); font-size:24px; }
+:root[data-theme="dark"] .bg-white { background-color:var(--surface); }
+:root[data-theme="dark"] .bg-gray-50,:root[data-theme="dark"] .bg-blue-50,:root[data-theme="dark"] .bg-red-50 { background-color:var(--soft); }
+:root[data-theme="dark"] .bg-\[\#f0f4f8\] { background-color:var(--page); }
+:root[data-theme="dark"] .text-\[\#1f2937\],:root[data-theme="dark"] .text-gray-900,:root[data-theme="dark"] .text-gray-700 { color:var(--text); }
+:root[data-theme="dark"] .text-gray-600,:root[data-theme="dark"] .text-gray-500,:root[data-theme="dark"] .text-gray-400,:root[data-theme="dark"] .text-gray-300 { color:var(--muted); }
+:root[data-theme="dark"] .text-blue-700,:root[data-theme="dark"] .text-blue-600,:root[data-theme="dark"] .text-blue-500 { color:var(--accent-text); }
+:root[data-theme="dark"] .text-red-700,:root[data-theme="dark"] .text-red-600 { color:#fda4af; }
+:root[data-theme="dark"] .text-amber-700 { color:#fcd34d; }
+:root[data-theme="dark"] .border-gray-100,:root[data-theme="dark"] .border-gray-200,:root[data-theme="dark"] .border-gray-300,:root[data-theme="dark"] .border-blue-100,:root[data-theme="dark"] .border-blue-200,:root[data-theme="dark"] .border-white { border-color:var(--border); }
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea { border-color:var(--border); }
+@media(max-width:700px) { .efata-hero { padding-top:42px; } .efata-feature-grid,.efata-story { grid-template-columns:1fr; } .efata-story { margin:0 20px 40px; padding:26px; gap:24px; } .efata-nav { padding:14px 18px; } .efata-theme-toggle { font-size:13px; padding:10px 12px; } }

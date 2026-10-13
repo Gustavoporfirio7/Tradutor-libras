@@ -1,4 +1,4 @@
-# SignaWeb
+# Éfata
 
 Aplicação React em português do Brasil com duas direções de tradução em desenvolvimento.
 
@@ -57,3 +57,15 @@ A conversa é a concatenação das palavras cadastradas reconhecidas; não é tr
 O atalho minimizado fica no canto inferior, respeitando a área segura do celular. O seletor **Atalho do VLibras** permite alternar entre direita e esquerda e salva a preferência neste navegador. O ajuste usa a referência `access` exposta pelo loader oficial do VLibras; futuras mudanças no widget podem exigir revisão.
 
 O painel aberto mantém o arraste nativo pela barra superior ou inferior, conforme https://vlibras.gov.br/doc/widget/functionalities/widget-position.html .
+
+## Éfata, temas e alfabeto
+
+A marca do site é Éfata. Sua história é inspirada em “Efatá”, em Marcos 7:31–37: abrir caminhos para a comunicação, com respeito à identidade surda e à Libras. A página inicial inclui uma explicação e um link para a passagem bíblica.
+
+O botão de tema permite escolher modo claro ou escuro. A preferência fica em `efata-theme`, sem alterar os cadastros antigos. Os identificadores `signaweb-*` são preservados para manter os exemplos já salvos.
+
+Na câmera, escolha **Reconhecer → Alfabeto manual**. Há regras experimentais para configurações distintas de B, F, I, L, U, V e W. O painel inclui todas as letras de A a Z e Ç e a referência visual enviada. Para as outras posturas, salve três exemplos. Para Ç, H, J, K, X, Y e Z, cadastre três sequências no painel de movimento usando a letra como nome.
+
+As letras calibradas são lidas continuamente. Os movimentos cadastrados do alfabeto são comparados em uma janela móvel de até três segundos. A detecção inicial não equivale a um modelo treinado ou a validação linguística; letras parecidas e movimentos incompletos podem ser recusados ou confundidos. Uma única imagem não fornece dados suficientes para treinamento completo.
+
+O histórico fica abaixo da câmera e mantém as 30 detecções mais recentes, incluindo repetições após retirar a mão. Letras consecutivas são concatenadas em **Sua conversa**; o texto permanece editável.
