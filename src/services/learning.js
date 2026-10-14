@@ -15,7 +15,32 @@ export async function learningRequest(path,options={}) {
   if(!response.ok) throw new Error(data.error||'Não foi possível acessar a base local.');
   return data;
 }
-export async function refreshLearning() {examples=await learningRequest('/examples');return examples;}
+export async function refreshLearning() {
+  let path='/examples';const rows=[];const seen=new Set();
+  while(path){
+    if(seen.has(path))throw new Error('A base retornou uma página repetida.');seen.add(path);
+    const page=await learningRequest(path);
+    if(Array.isArray(page)){rows.push(...page);path=null;}
+    else if(Array.isArray(page?.items)){rows.push(...page.items);path=page.nextOffset===null?null:`/examples?offset=${page.nextOffset}`;}
+    else throw new Error('A base retornou exemplos inválidos.');
+    if(rows.length>2000||seen.size>41)throw new Error('A base retornou mais exemplos do que o limite permitido.');
+  }
+  examples=rows;return examples;
+}
+export function watchLearning(onUpdate=()=>{},onError=()=>{}){
+  let active=true,running=false,revision=null;
+  const sync=async(force=false)=>{
+    if(!active||running)return;running=true;
+    try{
+      const version=await learningRequest('/revision');
+      if(force||version.revision!==revision){await refreshLearning();await restoreLearningModel();revision=version.revision;if(active)onUpdate();}
+    }catch(error){if(active)onError(error);}finally{running=false;}
+  };
+  const changed=()=>sync(true);const visible=()=>{if(document.visibilityState==='visible')sync();};
+  sync(true);const timer=setInterval(visible,15000);
+  window.addEventListener(LEARNING_EVENT,changed);window.addEventListener('focus',visible);document.addEventListener('visibilitychange',visible);
+  return()=>{active=false;clearInterval(timer);window.removeEventListener(LEARNING_EVENT,changed);window.removeEventListener('focus',visible);document.removeEventListener('visibilitychange',visible);};
+}
 export function reviewedGroups(kind) {
   const groups=new Map();
   for(const item of examples) {

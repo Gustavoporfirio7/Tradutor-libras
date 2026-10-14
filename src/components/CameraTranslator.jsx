@@ -5,7 +5,7 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { classifyHandGesture, SIGN_DICTIONARY } from '../utils/utilities';
 import MotionTrainer from './MotionTrainer';
 import TeachUnknown from './TeachUnknown';
-import {refreshLearning,restoreLearningModel,reviewedGroups,predictLearnedMotion,saveLearningExample,LEARNING_EVENT} from '../services/learning';
+import {watchLearning,reviewedGroups,predictLearnedMotion,saveLearningExample} from '../services/learning';
 import AlphabetPanel from './AlphabetPanel';
 import { classifyAlphabet, isLetter } from '../utils/alphabet';
 import { loadMotions, motionFrame, normalizeMotion, recognizeMotion } from '../utils/motionVocabulary';
@@ -34,11 +34,10 @@ export default function CameraTranslator({developer=false}) {
   const [unknownSample,setUnknownSample]=useState(null);
   const unknownVisibleRef=useRef(false);
   const unknownRequestRef=useRef(0);
+  const learningReadyRef=useRef(false);const [learningError,setLearningError]=useState('');
   const offerUnknown=(sample,force=false)=>{if(force||!unknownVisibleRef.current){unknownVisibleRef.current=true;setUnknownSample({...sample,requestId:++unknownRequestRef.current});}};
   useEffect(()=>{
-    const sync=()=>refreshLearning().then(()=>restoreLearningModel()).catch(()=>{});
-    sync();window.addEventListener(LEARNING_EVENT,sync);
-    return()=>window.removeEventListener(LEARNING_EVENT,sync);
+    return watchLearning(()=>{learningReadyRef.current=true;setLearningError('');},()=>{learningReadyRef.current=false;setLearningError('Não foi possível carregar o vocabulário de sinais. Confira a conexão e tente novamente.');});
   },[]);
 
   const updateVocabulary = next => {
@@ -216,11 +215,11 @@ export default function CameraTranslator({developer=false}) {
           detectedHands.length === 0 ? 'Posicione uma mão na câmera' :
           gesture ? 'Mantenha o gesto por um instante' : 'Gesto fora do vocabulário do protótipo');
         if (!gesture) {
-          if(learnedMode&&!unknownVisibleRef.current&&detectedHands.length&&now>=(session.unknownUntil||0)&&session.motionFrames.length>=25&&now-session.motionFrames[0].time>=2800){
+          if(learnedMode&&(learningReadyRef.current||developer)&&!unknownVisibleRef.current&&detectedHands.length&&now>=(session.unknownUntil||0)&&session.motionFrames.length>=25&&now-session.motionFrames[0].time>=2800){
             const captured=normalizeMotion(session.motionFrames);
             if(captured)offerUnknown({kind:'motion',features:captured});
           }
-          if(learnedMode&&features&&!unknownVisibleRef.current&&now>=(session.unknownUntil||0)){
+          if(learnedMode&&(learningReadyRef.current||developer)&&features&&!unknownVisibleRef.current&&now>=(session.unknownUntil||0)){
             const same=session.unknownAnchor&&Math.sqrt(features.reduce((sum,value,i)=>sum+(value-session.unknownAnchor[i])**2,0)/features.length)<0.08;
             if(!same){session.unknownAnchor=features;session.unknownSince=now;}
             else if(now-session.unknownSince>3200){const captured=normalizeMotion(session.motionFrames);offerUnknown(captured?{kind:'motion',features:captured}:{kind:'static',features:features.slice()});session.unknownSince=now;}
@@ -360,6 +359,7 @@ export default function CameraTranslator({developer=false}) {
             </div>
           </details>}
           {error && <p role="alert" className="rounded-2xl bg-red-50 p-4 text-red-700">{error}</p>}
+          {learningError && <p role="status" className="text-sm text-gray-600">{learningError}</p>}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center">
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Palavra ou gesto reconhecido</h4>
             <p className="text-4xl font-black text-[#1f2937] min-h-[60px] italic">

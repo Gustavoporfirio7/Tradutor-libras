@@ -1,10 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
+import {validFeatures} from './validation.mjs';
+export {validFeatures} from './validation.mjs';
 
-export function validFeatures(kind, features) {
-  const validRow = (row, size, bound) => Array.isArray(row) && row.length === size && row.every(v => Number.isFinite(v) && Math.abs(v) < bound);
-  return kind === 'static' ? validRow(features, 63, 20) : kind === 'motion' && Array.isArray(features) && features.length === 16 && features.every(row => validRow(row, 68, 30));
-}
 export function openStore(path) {
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode=WAL;

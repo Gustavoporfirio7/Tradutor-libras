@@ -179,6 +179,7 @@ test('lê letras calibradas, mantém repetições no histórico abaixo da câmer
 });
 
 test('na IA local pede o significado de uma postura desconhecida sem salvá-la automaticamente',async()=>{
+  fetch.mockImplementation(async url=>({ok:true,json:async()=>url.endsWith('/revision')?{revision:'test'}:url.endsWith('/model')?null:[]}));
   let onResults;
   Hands.mockImplementation(()=>({setOptions:jest.fn(),onResults:callback=>{onResults=callback;},close:jest.fn().mockResolvedValue()}));
   jest.spyOn(window,'requestAnimationFrame').mockReturnValue(1);
@@ -187,7 +188,7 @@ test('na IA local pede o significado de uma postura desconhecida sem salvá-la a
   const now=jest.spyOn(Date,'now').mockReturnValue(0);
   Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:jest.fn().mockResolvedValue({getTracks:()=>[{stop:jest.fn()}]})}});
   render(<TranslatorPage navigateTo={jest.fn()}/>);
-
+  await act(async()=>{});
   fireEvent.click(screen.getByRole('button',{name:'Ativar Câmera'}));
   await waitFor(()=>expect(onResults).toBeDefined());
   const points=Array.from({length:21},(_,i)=>({x:i*0.01,y:i*0.02,z:0}));

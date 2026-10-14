@@ -24,3 +24,5 @@ yarn-error.log*
 
 # Base local de aprendizado e materiais privados
 /.data/
+.env.server.local
+/.vercel/

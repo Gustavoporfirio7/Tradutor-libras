@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "env": { "EFATA_ALLOWED_ORIGINS": "https://tradutor-libras.vercel.app" },
+  "functions": {
+    "api/learning.mjs": { "maxDuration": 60, "excludeFiles": "{.data/**,artifacts/**,server/*.test.mjs,server/*.py}" }
+  },
+  "rewrites": [
+    { "source": "/api/learning/:route*", "destination": "/api/learning?route=:route*" }
+  ]
+}

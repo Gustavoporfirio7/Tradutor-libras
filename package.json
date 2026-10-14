@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/hands": "^0.4.1675469240",
@@ -27,9 +28,11 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node server/index.mjs",
+    "server": "node --use-system-ca --env-file-if-exists=.env.server.local server/index.mjs",
     "test:server": "node --test server/*.test.mjs",
-    "dev:local": "node server/dev.mjs"
+    "dev:local": "node server/dev.mjs",
+    "db:check": "node --use-system-ca --env-file-if-exists=.env.server.local server/migrate-cloud.mjs --check",
+    "db:migrate": "node --use-system-ca --env-file-if-exists=.env.server.local server/migrate-cloud.mjs"
   },
   "eslintConfig": {
     "extends": [

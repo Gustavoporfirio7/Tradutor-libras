@@ -14,7 +14,7 @@ export default function TeachUnknown({sample,onDismiss}) {
     <div className="flex gap-3 flex-wrap">
       <button type="button" disabled={busy||!label.trim()||!!message} onClick={async()=>{
         setBusy(true);setError('');
-        try {const saved=await saveLearningExample({...sample,label,description,source:{type:'camera'}});setMessage(saved.duplicate?'Esse exemplo já estava salvo.':'Exemplo salvo na base local, aguardando revisão.');}
+        try {const saved=await saveLearningExample({...sample,label,description,source:{type:'camera'}});setMessage(saved.duplicate?'Esse exemplo já estava salvo.':'Exemplo salvo, aguardando revisão da equipe.');}
         catch(cause){setError(cause.message);}finally{setBusy(false);}
       }} className="rounded-xl bg-blue-600 text-white px-4 py-3 font-bold disabled:opacity-50">{busy?'Salvando...':'Ensinar e salvar exemplo'}</button>
       <button type="button" onClick={onDismiss} disabled={busy} className="text-gray-600">{message?'Fechar':'Ignorar este sinal'}</button>

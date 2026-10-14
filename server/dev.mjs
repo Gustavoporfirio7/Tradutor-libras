@@ -3,7 +3,7 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const children=[
-  spawn(process.execPath,[resolve(root,'server/index.mjs')],{cwd:root,stdio:'inherit',windowsHide:true}),
+  spawn(process.execPath,['--use-system-ca','--env-file-if-exists=.env.server.local',resolve(root,'server/index.mjs')],{cwd:root,stdio:'inherit',windowsHide:true}),
   spawn(process.execPath,[resolve(root,'node_modules/react-scripts/scripts/start.js')],{cwd:root,stdio:'inherit',windowsHide:true,env:{...process.env,PORT:'3000',HOST:'127.0.0.1',BROWSER:'none'}})
 ];
 let stopping=false;
