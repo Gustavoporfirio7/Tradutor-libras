@@ -64,8 +64,70 @@ A marca do site é Éfata. Sua história é inspirada em “Efatá”, em Marcos
 
 O botão de tema permite escolher modo claro ou escuro. A preferência fica em `efata-theme`, sem alterar os cadastros antigos. Os identificadores `signaweb-*` são preservados para manter os exemplos já salvos.
 
-Na câmera, escolha **Reconhecer → Alfabeto manual**. Há regras experimentais para configurações distintas de B, F, I, L, U, V e W. O painel inclui todas as letras de A a Z e Ç e a referência visual enviada. Para as outras posturas, salve três exemplos. Para Ç, H, J, K, X, Y e Z, cadastre três sequências no painel de movimento usando a letra como nome.
+Na área dos desenvolvedores, abra **Capturar exemplos pela câmera → Reconhecer → Alfabeto manual**. Há regras experimentais para configurações distintas de B, F, I, L, U, V e W. O painel inclui todas as letras de A a Z e Ç e a referência visual enviada. Para as outras posturas, salve três exemplos. Para Ç, H, J, K, X, Y e Z, cadastre três sequências no painel de movimento usando a letra como nome.
 
 As letras calibradas são lidas continuamente. Os movimentos cadastrados do alfabeto são comparados em uma janela móvel de até três segundos. A detecção inicial não equivale a um modelo treinado ou a validação linguística; letras parecidas e movimentos incompletos podem ser recusados ou confundidos. Uma única imagem não fornece dados suficientes para treinamento completo.
 
 O histórico fica abaixo da câmera e mantém as 30 detecções mais recentes, incluindo repetições após retirar a mão. Letras consecutivas são concatenadas em **Sua conversa**; o texto permanece editável.
+
+## IA e base de aprendizado local
+
+Esta etapa adiciona uma API Node.js e um banco SQLite persistente, em `.data/efata.sqlite`. A base é local e não é compartilhada entre usuários do site publicado. Use Node.js 24 ou superior. Para iniciar o aplicativo e a API juntos:
+
+```sh
+npm install
+npm run dev:local
+```
+
+Abra http://127.0.0.1:3000. A API fica em http://127.0.0.1:3002, vinculada somente ao computador local. Também é possível iniciar `npm run server` e `npm start` em terminais separados. O frontend encaminha `/api/learning` à API via proxy de desenvolvimento. GitHub Pages continua servindo somente o frontend; não hospeda essa base.
+
+### Ensinar durante o uso
+
+Na tela pública, o reconhecimento usa automaticamente somente a base revisada. Se uma postura permanecer estável por cerca de três segundos sem ser reconhecida, o aplicativo oferece **O que você sinalizou?**. A captura temporária não é enviada automaticamente. Ao informar o significado e clicar em **Ensinar e salvar exemplo**, o exemplo e sua descrição são gravados como **aguardando revisão**.
+
+Movimentos desconhecidos também podem abrir a pergunta após uma captura contínua de aproximadamente três segundos. O usuário pode responder ou ignorar; a resposta é salva como contribuição pendente. A captura não é enviada antes dessa ação. Os controles de importação, correção manual e treinamento ficam somente na área dos desenvolvedores.
+
+Abra http://127.0.0.1:3000/#/desenvolvedor e informe a chave do arquivo `.data/admin-key.txt`, criada pela API na primeira execução. A chave permanece só na memória desta sessão do navegador. A API exige essa chave para referências, exportação, revisão e publicação de modelos. Confira a prévia dos pontos das mãos, a descrição e o trecho de origem; marque **Confirmar significado e revisar** somente quando o significado puder ser validado. Exemplos rejeitados ou pendentes não entram no reconhecimento. A classificação de posturas usa comparação com pelo menos três exemplos revisados; o modelo neural é destinado aos movimentos.
+
+### Vídeos e PDFs
+
+O importador de vídeos aceita MP4/WebM de até 100 MB, com um trecho de 1 a 10 segundos contendo um único sinal. O navegador acompanha as mãos com o MediaPipe, preserva os lados das duas mãos e transforma a trajetória em uma sequência de 16 quadros. Apenas os pontos normalizados, significado, nome do arquivo e trecho são enviados ao banco; o vídeo original não é armazenado.
+
+Os PDFs de até 10 MB são guardados no banco com o texto selecionável extraído por `pdf-parse`. Esse texto pode ser consultado como material de referência, mas não é tratado como exemplos de movimento ou usado para inventar rótulos. PDFs escaneados ainda não recebem OCR. Nenhuma leitura semântica automática do material ou tradução de descrições em movimentos está implementada.
+
+### Treinamento e limites
+
+Com três movimentos revisados por palavra e pelo menos duas palavras, clique em **Treinar com exemplos revisados**. O TensorFlow.js treina uma rede densa pequena com sequências das mãos normalizadas. Um exemplo por classe é separado da etapa de ajuste e usado para uma avaliação inicial. Essa avaliação pequena não comprova precisão com outros usuários, condições de iluminação ou movimentos não cadastrados.
+
+A versão do modelo, seus pesos e os identificadores dos exemplos usados são salvos no SQLite. A câmera carrega essa versão e combina a previsão neural com um limite de semelhança geométrica para recusar sinais muito distantes. Após novas revisões, é necessário treinar novamente para atualizar a rede; não há aprendizado cego a partir das próprias previsões.
+
+Os cadastros antigos do navegador são preservados e continuam disponíveis nos modos anteriores. Eles não são enviados automaticamente à nova base. Os materiais importados ficam na base privada deste computador e não acompanham o Git. Eles devem passar pela revisão; importar materiais não publica nem treina uma rede automaticamente. Expressões faciais, referência ao corpo, gramática de Libras e conversas livres ainda não são cobertas.
+
+### Validação e cópia de segurança
+
+```sh
+npm test -- --watchAll=false --runInBand
+npm run test:server
+npm run build
+```
+
+Os testes incluem persistência e revisão no SQLite, leitura de um PDF válido, fluxo de ensino e treinamento/salvamento/restauração de uma rede com dados sintéticos. Testes sintéticos não substituem a validação com usuários de Libras e vídeos reais.
+
+O botão **Exportar exemplos e modelo** gera um JSON com os exemplos, os pesos e metadados das referências. Para guardar também os PDFs originais, encerre a API e copie a pasta `.data` inteira. Ela está no `.gitignore`, para evitar publicação dos materiais de treinamento no repositório.
+
+### Importação offline pelos desenvolvedores
+
+Para lotes de vídeos, `server/extract-materials.py` lê um manifesto JSON com caminhos e trechos rotulados, detecta os 21 pontos de cada mão e gera os quadros. Instale as dependências apenas no ambiente de trabalho local (`mediapipe==0.10.21`, `opencv-contrib-python==4.11.0.86`). Exemplo de manifesto:
+
+```json
+[{"path":"C:/materiais/alfabeto.mp4","segments":[["A",6,8],["B",12,14]]}]
+```
+
+```sh
+python server/extract-materials.py manifesto.json quadros.json
+node server/import-materials.mjs quadros.json referencia.pdf
+```
+
+O importador reutiliza a mesma normalização do aplicativo e salva exemplos pendentes. Para letras estáticas, também extrai três posturas por trecho; elas não representam três pessoas ou execuções independentes. Separe os vídeos/pessoas ao avaliar a precisão. As letras com movimento não recebem posturas isoladas. O PDF fica como referência textual; não gera sinais automaticamente.
+
+A prévia da revisão mostra pontos das mãos, não rosto, corpo ou o vídeo original. Rejeite ou mantenha pendente qualquer contribuição cujo significado não possa ser confirmado com esses dados. Esta etapa é local; uma versão hospedada precisará de contas e permissões de servidor próprias.

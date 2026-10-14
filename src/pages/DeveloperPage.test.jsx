@@ -1,0 +1,21 @@
+import {render,screen,fireEvent} from '@testing-library/react';
+import DeveloperPage from './DeveloperPage';
+import {learningRequest,setDeveloperKey,refreshLearning} from '../services/learning';
+jest.mock('../services/learning',()=>({learningRequest:jest.fn(),setDeveloperKey:jest.fn(),refreshLearning:jest.fn().mockResolvedValue([])}));
+jest.mock('../components/LearningBase',()=>()=> <p>Painel de revisão protegido</p>);
+jest.mock('../components/CameraTranslator',()=>()=> <p>Câmera de desenvolvimento</p>);
+test('mantém materiais e revisão atrás da verificação da chave',async()=>{
+ refreshLearning.mockResolvedValue([]);
+ learningRequest.mockRejectedValueOnce(new Error('Chave inválida')).mockResolvedValueOnce({ok:true});
+ render(<DeveloperPage/>);
+ expect(screen.queryByText('Painel de revisão protegido')).not.toBeInTheDocument();
+ fireEvent.change(screen.getByLabelText('Chave local'),{target:{value:'teste'}});
+ fireEvent.click(screen.getByRole('button',{name:'Entrar'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent('Chave inválida');
+ expect(screen.queryByText('Painel de revisão protegido')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Entrar'}));
+ expect(await screen.findByText('Painel de revisão protegido')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Sair da área dos desenvolvedores'}));
+ expect(setDeveloperKey).toHaveBeenLastCalledWith('');
+ expect(screen.queryByText('Painel de revisão protegido')).not.toBeInTheDocument();
+});

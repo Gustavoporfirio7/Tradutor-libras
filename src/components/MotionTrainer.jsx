@@ -1,7 +1,8 @@
+import {reviewedGroups,predictLearnedMotion,saveLearningExample} from '../services/learning';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { loadMotions, saveMotions, motionFrame, normalizeMotion, addMotionExample, recognizeMotion, DAILY_WORDS } from '../utils/motionVocabulary';
 
-export default function MotionTrainer({ cameraSessionRef, isCapturing, onRecognized }) {
+export default function MotionTrainer({ cameraSessionRef, isCapturing, onRecognized, onUnknown }) {
   const [word, setWord] = useState('');
   const [motions, setMotions] = useState(loadMotions);
   const [recording, setRecording] = useState(false);
@@ -63,17 +64,18 @@ export default function MotionTrainer({ cameraSessionRef, isCapturing, onRecogni
           if (persist(next)) {
             const saved = next.find(item => item.word.toLocaleLowerCase('pt-BR') === label.replace(/\s+/g, ' ').slice(0, 40).toLocaleLowerCase('pt-BR'));
             setMessage(`Movimento salvo para “${saved.word}”: ${saved.examples.length} exemplos. ${saved.examples.length < 3 ? 'Grave mais exemplos para habilitar o reconhecimento.' : 'Pronto para testar.'}`);
+            saveLearningExample({label:saved.word,kind:'motion',features:sequence,source:{type:'camera'},description:'Movimento capturado na área dos desenvolvedores.'}).then(()=>setMessage('Movimento enviado à base local, aguardando revisão.')).catch(cause=>setError(`Cópia no navegador salva, mas a base local não recebeu o movimento: ${cause.message}`));
           }
         } catch (cause) { setError(cause.message); }
       } else {
-        const recognized = recognizeMotion(sequence, motions);
+        const recognized = predictLearnedMotion(sequence)||recognizeMotion(sequence, [...motions,...reviewedGroups('motion')]);
         if (recognized) { onRecognized(recognized); setMessage(`Sinal reconhecido: ${recognized}.`); }
-        else setMessage('Não encontrei uma correspondência clara. Repita o sinal ou cadastre mais exemplos.');
+        else {setMessage('Não encontrei uma correspondência clara. Você pode ensinar o significado deste sinal.');onUnknown?.({kind:'motion',features:sequence});}
       }
     }, 100);
   };
 
-  const ready = motions.some(item => item.examples.length >= 3);
+  const ready = true; // Permite reconhecer e ensinar um movimento mesmo com a base vazia.
   return <div className="bg-white rounded-2xl p-5 border border-blue-100 space-y-4">
     <h4 className="font-bold text-blue-700">Sinais com movimento</h4>
     <p className="text-sm text-gray-600">Agora você pode cadastrar sinais de até três segundos com uma ou duas mãos. Use o mesmo enquadramento e a mesma mão dos exemplos. O reconhecimento continua experimental.</p>

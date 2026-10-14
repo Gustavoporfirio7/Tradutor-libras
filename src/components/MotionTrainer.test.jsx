@@ -14,7 +14,7 @@ function completeRecording(session) {
   });
 }
 
-test('grava três movimentos e reconhece a palavra a partir da sequência completa', () => {
+test('grava três movimentos e reconhece a palavra a partir da sequência completa', async () => {
   const session = {};
   const onRecognized = jest.fn();
   render(<MotionTrainer cameraSessionRef={{ current: session }} isCapturing onRecognized={onRecognized} />);
@@ -22,7 +22,7 @@ test('grava três movimentos e reconhece a palavra a partir da sequência comple
   for (let example = 0; example < 3; example += 1) {
     fireEvent.click(screen.getByRole('button', { name: 'Gravar exemplo em movimento (3 s)' }));
     expect(session.recording).toBe(true);
-    completeRecording(session);
+    await act(async()=>completeRecording(session));
     expect(session.recording).toBe(false);
   }
   expect(JSON.parse(localStorage.getItem('signaweb-motions-v1'))[0].examples).toHaveLength(3);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import LandingPage from './pages/LandingPage';
 import TranslatorPage from './pages/TranslatorPage';
 import NotFoundPage from './pages/NotFoundPage';
+import DeveloperPage from './pages/DeveloperPage';
 import { Sun, Moon, Hand } from 'lucide-react';
 
 export default function App() {
@@ -37,6 +38,8 @@ export default function App() {
         return <LandingPage navigateTo={navigateTo} />;
       case '/tradutor':
         return <TranslatorPage navigateTo={navigateTo} />;
+      case '/desenvolvedor':
+        return <DeveloperPage />;
       default:
         return <NotFoundPage navigateTo={navigateTo} />;
     }

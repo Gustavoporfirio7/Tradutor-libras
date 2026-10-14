@@ -1,0 +1,17 @@
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { openStore } from './store.mjs';
+import { createAPI } from './api.mjs';
+import { parseReferencePdf } from './pdf.mjs';
+const root=dirname(fileURLToPath(import.meta.url));
+const path=resolve(root,'../.data/efata.sqlite');
+mkdirSync(dirname(path),{recursive:true});
+const store=openStore(path);
+const keyPath=resolve(root,'../.data/admin-key.txt');
+if(!existsSync(keyPath)) writeFileSync(keyPath,randomBytes(32).toString('hex'),{mode:0o600});
+const server=createAPI(store,parseReferencePdf,readFileSync(keyPath,'utf8').trim());
+console.log('Área dos desenvolvedores: http://127.0.0.1:3000/#/desenvolvedor — chave em .data/admin-key.txt');
+server.listen(3002,'127.0.0.1',()=>console.log('Base local Éfata: http://127.0.0.1:3002 — .data/efata.sqlite'));
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>server.close(()=>{store.close();process.exit(0);}));

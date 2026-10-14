@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import TranslatorPage from './TranslatorPage';
+import CameraTranslator from '../components/CameraTranslator';
 import { Hands } from '@mediapipe/hands';
 
 jest.mock('@mediapipe/hands', () => ({ Hands: jest.fn(), HAND_CONNECTIONS: [] }));
@@ -50,7 +51,7 @@ test('confirma um gesto estável, evita repetição de voz e libera os recursos 
   const speak = jest.fn();
   Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { speak, cancel: jest.fn(), getVoices: () => [] } });
   window.SpeechSynthesisUtterance = function (text) { this.text = text; };
-  render(<TranslatorPage navigateTo={jest.fn()} />);
+  render(<CameraTranslator developer />);
   fireEvent.click(screen.getByRole('button', { name: 'Ativar Câmera' }));
   await waitFor(() => expect(onResults).toBeDefined());
   const frame = (time, visible = true) => {
@@ -130,14 +131,14 @@ test('cadastra três exemplos e exibe a palavra associada à mão', async () => 
   Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
     getUserMedia: jest.fn().mockResolvedValue({ getTracks: () => [{ stop: jest.fn() }] })
   } });
-  render(<TranslatorPage navigateTo={jest.fn()} />);
+  render(<CameraTranslator developer />);
   fireEvent.click(screen.getByRole('button', { name: 'Ativar Câmera' }));
   await waitFor(() => expect(onResults).toBeDefined());
   fireEvent.click(screen.getByText('Ensinar uma palavra (experimental)'));
   fireEvent.change(screen.getByLabelText('Palavra do sinal'), { target: { value: 'Exemplo' } });
   const points = Array.from({ length: 21 }, (_, i) => ({ x: 0.1 + i * 0.01, y: 0.2 + i * 0.02, z: i * 0.005 }));
   act(() => onResults({ multiHandLandmarks: [points] }));
-  for (let i = 0; i < 3; i += 1) fireEvent.click(screen.getByRole('button', { name: 'Salvar exemplo da mão' }));
+  for (let i = 0; i < 3; i += 1) await act(async()=>fireEvent.click(screen.getByRole('button', { name: 'Salvar exemplo da mão' })));
   expect(JSON.parse(localStorage.getItem('signaweb-vocabulary-v1'))[0].examples).toHaveLength(3);
   now.mockReturnValue(1100);
   act(() => onResults({ multiHandLandmarks: [points] }));
@@ -160,7 +161,7 @@ test('lê letras calibradas, mantém repetições no histórico abaixo da câmer
   const {handFeatures}=require('../utils/vocabulary');
   const example=handFeatures(points);
   localStorage.setItem('signaweb-vocabulary-v1',JSON.stringify([{word:'A',examples:[example,example,example]}]));
-  const {container}=render(<TranslatorPage navigateTo={jest.fn()} />);
+  const {container}=render(<CameraTranslator developer />);
   fireEvent.change(screen.getByLabelText('Reconhecer'),{target:{value:'alphabet'}});
   fireEvent.click(screen.getByRole('button',{name:'Ativar Câmera'}));
   await waitFor(()=>expect(onResults).toBeDefined());
@@ -175,4 +176,32 @@ test('lê letras calibradas, mantém repetições no histórico abaixo da câmer
   const camera=container.querySelector('video');
   expect(camera.compareDocumentPosition(historyHeading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByRole('button',{name:'Salvar postura da letra A'})).toBeInTheDocument();
+});
+
+test('na IA local pede o significado de uma postura desconhecida sem salvá-la automaticamente',async()=>{
+  let onResults;
+  Hands.mockImplementation(()=>({setOptions:jest.fn(),onResults:callback=>{onResults=callback;},close:jest.fn().mockResolvedValue()}));
+  jest.spyOn(window,'requestAnimationFrame').mockReturnValue(1);
+  jest.spyOn(window,'cancelAnimationFrame').mockImplementation(()=>{});
+  jest.spyOn(HTMLMediaElement.prototype,'play').mockResolvedValue();
+  const now=jest.spyOn(Date,'now').mockReturnValue(0);
+  Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:jest.fn().mockResolvedValue({getTracks:()=>[{stop:jest.fn()}]})}});
+  render(<TranslatorPage navigateTo={jest.fn()}/>);
+
+  fireEvent.click(screen.getByRole('button',{name:'Ativar Câmera'}));
+  await waitFor(()=>expect(onResults).toBeDefined());
+  const points=Array.from({length:21},(_,i)=>({x:i*0.01,y:i*0.02,z:0}));
+  act(()=>onResults({multiHandLandmarks:[points]}));
+  now.mockReturnValue(3500);act(()=>onResults({multiHandLandmarks:[points]}));
+  expect(screen.getByLabelText('O que você sinalizou?')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Ensinar e salvar exemplo'})).toBeDisabled();
+  expect(fetch.mock.calls.every(([,options])=>options?.method!=='POST')).toBe(true);
+});
+
+test('usuário comum não recebe importação nem controles de treinamento',()=>{
+ render(<TranslatorPage navigateTo={jest.fn()}/>);
+ expect(screen.queryByRole('button',{name:'Base de aprendizado'})).not.toBeInTheDocument();
+ expect(screen.queryByText('Ensinar uma palavra (experimental)')).not.toBeInTheDocument();
+ expect(screen.queryByRole('button',{name:'Corrigir ou ensinar sinal atual'})).not.toBeInTheDocument();
+ expect(screen.queryByLabelText('O que você sinalizou?')).not.toBeInTheDocument();
 });
